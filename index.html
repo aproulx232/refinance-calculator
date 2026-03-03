@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mortgage Refinance Calculator</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 600px; margin: auto; }
+        input[type="number"], input[type="text"] { width: 100%; padding: 10px; margin: 10px 0; }
+        button { padding: 10px; background-color: #28a745; color: white; border: none; cursor: pointer; }
+        button:hover { background-color: #218838; }
+        .result { margin-top: 20px; font-size: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Mortgage Refinance Calculator</h1>
+        <label for="currentLoanAmount">Current Loan Amount:</label>
+        <input type="number" id="currentLoanAmount" placeholder="e.g. 250000" required>
+
+        <label for="currentInterestRate">Current Interest Rate (%):</label>
+        <input type="number" step="0.01" id="currentInterestRate" placeholder="e.g. 3.5" required>
+
+        <label for="newInterestRate">New Interest Rate (%):</label>
+        <input type="number" step="0.01" id="newInterestRate" placeholder="e.g. 2.5" required>
+
+        <label for="loanTerm">Loan Term (years):</label>
+        <input type="number" id="loanTerm" placeholder="e.g. 30" required>
+
+        <button onclick="calculateSavings()">Calculate Savings</button>
+
+        <div class="result" id="result"></div>
+    </div>
+
+    <script>
+        function calculateSavings() {
+            const currentLoanAmount = parseFloat(document.getElementById('currentLoanAmount').value);
+            const currentInterestRate = parseFloat(document.getElementById('currentInterestRate').value) / 100 / 12;
+            const newInterestRate = parseFloat(document.getElementById('newInterestRate').value) / 100 / 12;
+            const loanTerm = parseInt(document.getElementById('loanTerm').value) * 12;
+
+            const currentMonthlyPayment = currentLoanAmount * (currentInterestRate * Math.pow(1 + currentInterestRate, loanTerm)) / (Math.pow(1 + currentInterestRate, loanTerm) - 1);
+            const newMonthlyPayment = currentLoanAmount * (newInterestRate * Math.pow(1 + newInterestRate, loanTerm)) / (Math.pow(1 + newInterestRate, loanTerm) - 1);
+
+            const monthlySavings = currentMonthlyPayment - newMonthlyPayment;
+            const annualSavings = monthlySavings * 12;
+
+            document.getElementById('result').innerHTML = `Monthly Savings: $${monthlySavings.toFixed(2)}<br>Annual Savings: $${annualSavings.toFixed(2)}`;
+        }
+    </script>
+</body>
+</html>
