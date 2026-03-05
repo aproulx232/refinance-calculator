@@ -87,20 +87,39 @@ function showTab(tabName) {
 
     // re-render chart when tab becomes visible
     if (lastCurrentSchedule && lastNewSchedule) {
-        const currentStartDate = new Date(document.getElementById('currentStartDate').value);
-        const refinanceDate = new Date(document.getElementById('refinanceDate').value);
+        const currentStartDateStr = document.getElementById('currentStartDate').value;
+        const refinanceDateStr = document.getElementById('refinanceDate').value;
+        const currentStartDate = new Date(currentStartDateStr);
+        const refinanceDate = new Date(refinanceDateStr);
         const monthsElapsedEstimate = Math.floor((refinanceDate - currentStartDate) / (1000 * 60 * 60 * 24 * 30.44));
         if (tabName === 'currentSchedule') {
-            renderChart('currentChart', lastCurrentSchedule, currentStartDate, 1);
+            renderChart('currentChart', lastCurrentSchedule, currentStartDateStr, 1);
         } else if (tabName === 'newSchedule') {
-            renderChart('newChart', lastNewSchedule, refinanceDate, monthsElapsedEstimate + 1);
+            renderChart('newChart', lastNewSchedule, refinanceDateStr, monthsElapsedEstimate + 1);
         } else if (tabName === 'comparison') {
-            renderComparisonChart(lastCurrentSchedule, lastNewSchedule, currentStartDate, refinanceDate);
+            renderComparisonChart(lastCurrentSchedule, lastNewSchedule, currentStartDateStr, refinanceDateStr);
         }
     }
 }
 function renderComparisonChart(currentSchedule, newSchedule, currentStartDate, refinanceDate) {
     const ctx = document.getElementById('comparisonChart').getContext('2d');
+    
+    // parse dates properly to avoid timezone shifts
+    let chartCurrentStartDate, chartRefinanceDate;
+    
+    if (typeof currentStartDate === 'string') {
+        const [year, month, day] = currentStartDate.split('-');
+        chartCurrentStartDate = new Date(year, month - 1, day);
+    } else {
+        chartCurrentStartDate = currentStartDate;
+    }
+    
+    if (typeof refinanceDate === 'string') {
+        const [year, month, day] = refinanceDate.split('-');
+        chartRefinanceDate = new Date(year, month - 1, day);
+    } else {
+        chartRefinanceDate = refinanceDate;
+    }
     
     // create unified date labels - use appropriate start date for each loan
     const allMonths = Array.from(new Set([...currentSchedule, ...newSchedule].map(r => r.month))).sort((a, b) => a - b);
@@ -110,13 +129,13 @@ function renderComparisonChart(currentSchedule, newSchedule, currentStartDate, r
         
         if (isNewLoanMonth) {
             // use refinance date for new loan months
-            const d = new Date(refinanceDate);
+            const d = new Date(chartRefinanceDate);
             const newLoanMonthOffset = monthNum - newSchedule[0].month;
             d.setMonth(d.getMonth() + newLoanMonthOffset);
             return d.toLocaleDateString('en-US', { year: '2-digit', month: 'short' });
         } else {
             // use current start date for current loan months
-            const d = new Date(currentStartDate);
+            const d = new Date(chartCurrentStartDate);
             d.setMonth(d.getMonth() + monthNum - 1);
             return d.toLocaleDateString('en-US', { year: '2-digit', month: 'short' });
         }
@@ -201,11 +220,22 @@ function renderComparisonChart(currentSchedule, newSchedule, currentStartDate, r
 function renderChart(canvasId, schedule, startDate, scheduleStartMonth = 1) {
     const ctx = document.getElementById(canvasId).getContext('2d');
     
+    // parse date string properly to avoid timezone shifts
+    let chartStartDate;
+    if (typeof startDate === 'string') {
+        const [year, month, day] = startDate.split('-');
+        chartStartDate = new Date(year, month - 1, day);
+    } else {
+        chartStartDate = startDate;
+    }
+    
     // convert month numbers to calendar dates
     // scheduleStartMonth indicates what actual month the schedule data starts at
     const labels = schedule.map(r => {
-        const d = new Date(startDate);
-        // adjust for where in the timeline this schedule actually starts
+        const d = new Date(chartStartDate);
+        // the schedule month numbers are relative to the full loan timeline
+        // we need to adjust: if schedule starts at month 49, and we're using refinanceDate,
+        // then month 49 should show as month 1 from refinanceDate
         const monthOffset = r.month - scheduleStartMonth;
         d.setMonth(d.getMonth() + monthOffset);
         return d.toLocaleDateString('en-US', { year: '2-digit', month: 'short' });
@@ -268,17 +298,21 @@ function renderChart(canvasId, schedule, startDate, scheduleStartMonth = 1) {
 
 // hook UI and calculation logic
 
-function renderResults(originalCurrentAmount, remainingBalance, currentRate, currentTermMonths, newAmount, newRate, newTermMonths, monthsElapsed) {
+function renderResults(originalCurrentAmount, remainingBalance, currentRate, remainingMonthsCurrent, newAmount, newRate, newTermMonths, monthsElapsed, currentStartDateStr, refinanceDateStr) {
+    // reconstruct original term from remaining months + elapsed
+    const fullTermMonths = remainingMonthsCurrent + monthsElapsed;
     // use original amount for current loan calc, remaining balance for new loan
-    const results = calculateRefinancing(originalCurrentAmount, remainingBalance, newRate, newTermMonths, currentRate, currentTermMonths);
+    const results = calculateRefinancing(originalCurrentAmount, remainingBalance, newRate, newTermMonths, currentRate, fullTermMonths);
     const currentDiv = document.getElementById('currentSchedule');
     const newDiv = document.getElementById('newSchedule');
     const comparisonDiv = document.getElementById('comparison');
 
     // rebuild content but keep/restore canvas elements
     currentDiv.innerHTML = `<h2>Current Loan Schedule</h2>
+        <p>Original loan amount: $${originalCurrentAmount.toFixed(2)}</p>
         <p>Monthly payment: $${results.currentPayment}</p>
-        <p>Remaining term: ${currentTermMonths / 12} years</p>
+        <p>Remaining balance at refinance: $${remainingBalance.toFixed(2)}</p>
+        <p>Remaining term: ${(remainingMonthsCurrent / 12).toFixed(1)} years</p>
         <p>Months elapsed: ${monthsElapsed}</p>`;
     // make sure canvas exists (might have been removed by innerHTML)
     if (!document.getElementById('currentChart')) {
@@ -288,14 +322,15 @@ function renderResults(originalCurrentAmount, remainingBalance, currentRate, cur
         canvas.height = 200;
         currentDiv.appendChild(canvas);
     }
-    const currentSchedule = generateSchedule(originalCurrentAmount, currentRate, currentTermMonths, 0);
+    const currentSchedule = generateSchedule(originalCurrentAmount, currentRate, fullTermMonths, 0);
     lastCurrentSchedule = currentSchedule;
     currentDiv.innerHTML += scheduleToHtml(currentSchedule);
-    renderChart('currentChart', currentSchedule, new Date(document.getElementById('currentStartDate').value));
+    renderChart('currentChart', currentSchedule, currentStartDateStr);
 
     newDiv.innerHTML = `<h2>New Loan Schedule</h2>
+        <p>Refinance amount: $${remainingBalance.toFixed(2)}</p>
         <p>Monthly payment: $${results.newPayment}</p>
-        <p>Term: ${newTermMonths / 12} years</p>`;
+        <p>Term: ${(newTermMonths / 12).toFixed(1)} years</p>`;
     if (!document.getElementById('newChart')) {
         const canvas = document.createElement('canvas');
         canvas.id = 'newChart';
@@ -307,8 +342,7 @@ function renderResults(originalCurrentAmount, remainingBalance, currentRate, cur
     lastNewSchedule = newSchedule;
     newDiv.innerHTML += scheduleToHtml(newSchedule);
     // new schedule starts at month (monthsElapsed + 1), and we want dates from refinanceDate
-    const refinanceDate = new Date(document.getElementById('refinanceDate').value);
-    renderChart('newChart', newSchedule, refinanceDate, monthsElapsed + 1);
+    renderChart('newChart', newSchedule, refinanceDateStr, monthsElapsed + 1);
 
     comparisonDiv.innerHTML = `<h2>Side-by-Side Comparison</h2>
         <p>Current monthly payment: $${results.currentPayment}</p>
@@ -322,7 +356,7 @@ function renderResults(originalCurrentAmount, remainingBalance, currentRate, cur
         canvas.height = 200;
         comparisonDiv.appendChild(canvas);
     }
-    renderComparisonChart(currentSchedule, newSchedule, new Date(document.getElementById('currentStartDate').value), new Date(document.getElementById('refinanceDate').value));
+    renderComparisonChart(currentSchedule, newSchedule, currentStartDateStr, refinanceDateStr);
 }
 
 // wire up the form submission
@@ -345,13 +379,23 @@ window.addEventListener('DOMContentLoaded', () => {
         let amountCurrent = parseFloat(document.getElementById('currentAmount').value);
         let rateCurrent = parseFloat(document.getElementById('currentRate').value);
         let termCurrent = parseInt(document.getElementById('currentTerm').value, 10) * 12;
-        const currentStartDate = new Date(document.getElementById('currentStartDate').value);
-        const refinanceDate = new Date(document.getElementById('refinanceDate').value);
+        const currentStartDateStr = document.getElementById('currentStartDate').value;
+        const refinanceDateStr = document.getElementById('refinanceDate').value;
         
         let amountNew = parseFloat(document.getElementById('newAmount').value);
         let rateNew = parseFloat(document.getElementById('newRate').value);
         let termNew = parseInt(document.getElementById('newTerm').value, 10) * 12;
 
+        // fall back to defaults if anything is missing or NaN (do this BEFORE calculations)
+        if (isNaN(amountCurrent)) amountCurrent = DEFAULTS.currentAmount;
+        if (isNaN(rateCurrent)) rateCurrent = DEFAULTS.currentRate;
+        if (isNaN(rateNew)) rateNew = DEFAULTS.newRate;
+        if (isNaN(termCurrent)) termCurrent = DEFAULTS.currentTermYears * 12;
+        if (isNaN(termNew)) termNew = DEFAULTS.newTermYears * 12;
+
+        const currentStartDate = new Date(currentStartDateStr);
+        const refinanceDate = new Date(refinanceDateStr);
+        
         // calculate months elapsed on current loan
         const monthsElapsed = Math.floor((refinanceDate - currentStartDate) / (1000 * 60 * 60 * 24 * 30.44));
         const remainingMonthsCurrent = Math.max(0, termCurrent - monthsElapsed);
@@ -359,15 +403,10 @@ window.addEventListener('DOMContentLoaded', () => {
         // calculate remaining balance on current loan
         const remainingBalance = calculateRemainingBalance(amountCurrent, rateCurrent, termCurrent, monthsElapsed);
         
-        // fall back to defaults if anything is missing or NaN
-        if (isNaN(amountCurrent)) amountCurrent = DEFAULTS.currentAmount;
-        if (isNaN(rateCurrent)) rateCurrent = DEFAULTS.currentRate;
         // for new amount, use remaining balance if user didn't enter a value
         if (isNaN(amountNew)) amountNew = remainingBalance;
-        if (isNaN(rateNew)) rateNew = DEFAULTS.newRate;
-        if (isNaN(termNew)) termNew = DEFAULTS.newTermYears * 12;
 
-        renderResults(amountCurrent, remainingBalance, rateCurrent, remainingMonthsCurrent, amountNew, rateNew, termNew, monthsElapsed);
+        renderResults(amountCurrent, remainingBalance, rateCurrent, remainingMonthsCurrent, amountNew, rateNew, termNew, monthsElapsed, currentStartDateStr, refinanceDateStr);
         showTab('comparison');
     });
 });
