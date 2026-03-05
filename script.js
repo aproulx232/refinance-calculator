@@ -21,17 +21,23 @@ function generateSchedule(amount, annualRate, termMonths) {
     // payment formula
     const payment = (amount * monthlyRate) / (1 - Math.pow(1 + monthlyRate, -termMonths));
     let balance = amount;
+    let cumulativePrincipal = 0;
+    let cumulativeInterest = 0;
     for (let m = 1; m <= termMonths; m++) {
         const interest = balance * monthlyRate;
         const principal = payment - interest;
         balance -= principal;
         if (balance < 0) balance = 0;
+        cumulativePrincipal += parseFloat(principal);
+        cumulativeInterest += parseFloat(interest);
         schedule.push({
             month: m,
             payment: payment.toFixed(2),
             principal: principal.toFixed(2),
             interest: interest.toFixed(2),
-            balance: balance.toFixed(2)
+            balance: balance.toFixed(2),
+            cumulativePrincipal: cumulativePrincipal.toFixed(2),
+            cumulativeInterest: cumulativeInterest.toFixed(2)
         });
     }
     return schedule;
@@ -49,6 +55,65 @@ function scheduleToHtml(schedule) {
     return html;
 }
 
+// chart instances for reuse
+let currentChartInstance = null;
+let newChartInstance = null;
+
+function renderChart(canvasId, schedule) {
+    const ctx = document.getElementById(canvasId).getContext('2d');
+    const labels = schedule.map(r => r.month);
+    const cumulativePrincipalData = schedule.map(r => parseFloat(r.cumulativePrincipal));
+    const cumulativeInterestData = schedule.map(r => parseFloat(r.cumulativeInterest));
+    const balanceData = schedule.map(r => parseFloat(r.balance));
+
+    const config = {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [
+                {
+                    label: 'Cumulative Principal',
+                    data: cumulativePrincipalData,
+                    borderColor: 'blue',
+                    fill: false
+                },
+                {
+                    label: 'Cumulative Interest',
+                    data: cumulativeInterestData,
+                    borderColor: 'red',
+                    fill: false
+                },
+                {
+                    label: 'Remaining Balance',
+                    data: balanceData,
+                    borderColor: 'green',
+                    fill: false
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                x: { title: { display: true, text: 'Month' } },
+                y: { title: { display: true, text: 'Amount' } }
+            }
+        }
+    };
+
+    // destroy previous chart if exists
+    if (canvasId === 'currentChart' && currentChartInstance) {
+        currentChartInstance.destroy();
+    }
+    if (canvasId === 'newChart' && newChartInstance) {
+        newChartInstance.destroy();
+    }
+
+    const chart = new Chart(ctx, config);
+    if (canvasId === 'currentChart') currentChartInstance = chart;
+    if (canvasId === 'newChart') newChartInstance = chart;
+}
+
+
 // hook UI and calculation logic
 
 function renderResults(currentAmount, currentRate, currentTermMonths, newAmount, newRate, newTermMonths) {
@@ -57,18 +122,35 @@ function renderResults(currentAmount, currentRate, currentTermMonths, newAmount,
     const newDiv = document.getElementById('newSchedule');
     const comparisonDiv = document.getElementById('comparison');
 
+    // rebuild content but keep/restore canvas elements
     currentDiv.innerHTML = `<h2>Current Loan Schedule</h2>
         <p>Monthly payment: $${results.currentPayment}</p>
         <p>Term: ${currentTermMonths / 12} years</p>`;
-    // append amortization table
+    // make sure canvas exists (might have been removed by innerHTML)
+    if (!document.getElementById('currentChart')) {
+        const canvas = document.createElement('canvas');
+        canvas.id = 'currentChart';
+        canvas.width = 400;
+        canvas.height = 200;
+        currentDiv.appendChild(canvas);
+    }
     const currentSchedule = generateSchedule(currentAmount, currentRate, currentTermMonths);
     currentDiv.innerHTML += scheduleToHtml(currentSchedule);
+    renderChart('currentChart', currentSchedule);
 
     newDiv.innerHTML = `<h2>New Loan Schedule</h2>
         <p>Monthly payment: $${results.newPayment}</p>
         <p>Term: ${newTermMonths / 12} years</p>`;
+    if (!document.getElementById('newChart')) {
+        const canvas = document.createElement('canvas');
+        canvas.id = 'newChart';
+        canvas.width = 400;
+        canvas.height = 200;
+        newDiv.appendChild(canvas);
+    }
     const newSchedule = generateSchedule(newAmount, newRate, newTermMonths);
     newDiv.innerHTML += scheduleToHtml(newSchedule);
+    renderChart('newChart', newSchedule);
 
     comparisonDiv.innerHTML = `<h2>Side-by-Side Comparison</h2>
         <p>Current payment: $${results.currentPayment}</p>
