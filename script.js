@@ -321,7 +321,7 @@ function renderChart(canvasId, schedule, startDate, scheduleStartMonth = 1) {
 
 // hook UI and calculation logic
 
-function renderResults(originalCurrentAmount, remainingBalance, currentRate, remainingMonthsCurrent, newAmount, newRate, newTermMonths, monthsElapsed, currentStartDateStr, refinanceDateStr, extraPayment) {
+function renderResults(originalCurrentAmount, remainingBalance, currentRate, remainingMonthsCurrent, newAmount, newRate, newTermMonths, monthsElapsed, currentStartDateStr, refinanceDateStr, currentExtraPayment, newExtraPayment) {
     // reconstruct original term from remaining months + elapsed
     const fullTermMonths = remainingMonthsCurrent + monthsElapsed;
     // use original amount for current loan calc, remaining balance for new loan
@@ -345,7 +345,7 @@ function renderResults(originalCurrentAmount, remainingBalance, currentRate, rem
         canvas.height = 300;
         currentDiv.appendChild(canvas);
     }
-    const currentSchedule = generateSchedule(originalCurrentAmount, currentRate, fullTermMonths, 0, null, extraPayment);
+    const currentSchedule = generateSchedule(originalCurrentAmount, currentRate, fullTermMonths, 0, null, currentExtraPayment);
     lastCurrentSchedule = currentSchedule;
     currentDiv.innerHTML += scheduleToHtml(currentSchedule);
     renderChart('currentChart', currentSchedule, currentStartDateStr);
@@ -361,7 +361,7 @@ function renderResults(originalCurrentAmount, remainingBalance, currentRate, rem
         canvas.height = 300;
         newDiv.appendChild(canvas);
     }
-    const newSchedule = generateSchedule(newAmount, newRate, newTermMonths, monthsElapsed, newAmount, extraPayment);
+    const newSchedule = generateSchedule(newAmount, newRate, newTermMonths, monthsElapsed, newAmount, newExtraPayment);
     lastNewSchedule = newSchedule;
     newDiv.innerHTML += scheduleToHtml(newSchedule);
     // new schedule starts at month (monthsElapsed + 1), and we want dates from refinanceDate
@@ -408,7 +408,8 @@ window.addEventListener('DOMContentLoaded', () => {
         let amountNew = parseFloat(document.getElementById('newAmount').value);
         let rateNew = parseFloat(document.getElementById('newRate').value);
         let termNew = parseInt(document.getElementById('newTerm').value, 10) * 12;
-        let extraPayment = parseFloat(document.getElementById('extraPayment').value);
+        let currentExtraPayment = parseFloat(document.getElementById('currentExtraPayment').value);
+        let newExtraPayment = parseFloat(document.getElementById('newExtraPayment').value);
 
         // fall back to defaults if anything is missing or NaN (do this BEFORE calculations)
         if (isNaN(amountCurrent)) amountCurrent = DEFAULTS.currentAmount;
@@ -416,7 +417,8 @@ window.addEventListener('DOMContentLoaded', () => {
         if (isNaN(rateNew)) rateNew = DEFAULTS.newRate;
         if (isNaN(termCurrent)) termCurrent = DEFAULTS.currentTermYears * 12;
         if (isNaN(termNew)) termNew = DEFAULTS.newTermYears * 12;
-        if (isNaN(extraPayment)) extraPayment = 1000;
+        if (isNaN(currentExtraPayment)) currentExtraPayment = 1000;
+        if (isNaN(newExtraPayment)) newExtraPayment = 1000;
 
         const currentStartDate = new Date(currentStartDateStr);
         const refinanceDate = new Date(refinanceDateStr);
@@ -427,7 +429,7 @@ window.addEventListener('DOMContentLoaded', () => {
         
         // generate current loan schedule with extra payments to get accurate remaining balance
         const fullTermMonths = remainingMonthsCurrent + monthsElapsed;
-        const tempCurrentSchedule = generateSchedule(amountCurrent, rateCurrent, fullTermMonths, 0, null, extraPayment);
+        const tempCurrentSchedule = generateSchedule(amountCurrent, rateCurrent, fullTermMonths, 0, null, currentExtraPayment);
         
         // find the balance at the refinance month (monthsElapsed)
         const refinanceMonthEntry = tempCurrentSchedule.find(entry => entry.month === monthsElapsed);
@@ -436,7 +438,7 @@ window.addEventListener('DOMContentLoaded', () => {
         // for new amount, use remaining balance if user didn't enter a value
         if (isNaN(amountNew)) amountNew = remainingBalance;
 
-        renderResults(amountCurrent, remainingBalance, rateCurrent, remainingMonthsCurrent, amountNew, rateNew, termNew, monthsElapsed, currentStartDateStr, refinanceDateStr, extraPayment);
+        renderResults(amountCurrent, remainingBalance, rateCurrent, remainingMonthsCurrent, amountNew, rateNew, termNew, monthsElapsed, currentStartDateStr, refinanceDateStr, currentExtraPayment, newExtraPayment);
         showTab('comparison');
     });
 });
