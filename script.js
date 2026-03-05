@@ -29,7 +29,7 @@ function calculateRefinancing(currentAmount, newAmount, newRate, newTerm, curren
 }
 
 // compute amortization schedule for given loan
-function generateSchedule(amount, annualRate, termMonths, monthOffset = 0, startingBalance = null) {
+function generateSchedule(amount, annualRate, termMonths, monthOffset = 0, startingBalance = null, extraMonthlyPayment = 0) {
     const schedule = [];
     const monthlyRate = annualRate / 100 / 12;
     // payment formula
@@ -50,22 +50,26 @@ function generateSchedule(amount, annualRate, termMonths, monthOffset = 0, start
         cumulativeInterest: '0.00'
     });
     
-    for (let m = 1; m <= termMonths; m++) {
+    let m = 1;
+    while (balance > 0.01 && m <= termMonths) { // continue until paid off or max term
         const interest = balance * monthlyRate;
         const principal = payment - interest;
-        balance -= principal;
+        // apply extra payment towards principal
+        const totalPrincipal = principal + extraMonthlyPayment;
+        balance -= totalPrincipal;
         if (balance < 0) balance = 0;
-        cumulativePrincipal += parseFloat(principal);
+        cumulativePrincipal += parseFloat(totalPrincipal);
         cumulativeInterest += parseFloat(interest);
         schedule.push({
             month: monthOffset + m,
             payment: payment.toFixed(2),
-            principal: principal.toFixed(2),
+            principal: totalPrincipal.toFixed(2),
             interest: interest.toFixed(2),
             balance: balance.toFixed(2),
             cumulativePrincipal: cumulativePrincipal.toFixed(2),
             cumulativeInterest: cumulativeInterest.toFixed(2)
         });
+        m++;
     }
     return schedule;
 }
@@ -317,7 +321,7 @@ function renderChart(canvasId, schedule, startDate, scheduleStartMonth = 1) {
 
 // hook UI and calculation logic
 
-function renderResults(originalCurrentAmount, remainingBalance, currentRate, remainingMonthsCurrent, newAmount, newRate, newTermMonths, monthsElapsed, currentStartDateStr, refinanceDateStr) {
+function renderResults(originalCurrentAmount, remainingBalance, currentRate, remainingMonthsCurrent, newAmount, newRate, newTermMonths, monthsElapsed, currentStartDateStr, refinanceDateStr, extraPayment) {
     // reconstruct original term from remaining months + elapsed
     const fullTermMonths = remainingMonthsCurrent + monthsElapsed;
     // use original amount for current loan calc, remaining balance for new loan
@@ -341,7 +345,7 @@ function renderResults(originalCurrentAmount, remainingBalance, currentRate, rem
         canvas.height = 300;
         currentDiv.appendChild(canvas);
     }
-    const currentSchedule = generateSchedule(originalCurrentAmount, currentRate, fullTermMonths, 0);
+    const currentSchedule = generateSchedule(originalCurrentAmount, currentRate, fullTermMonths, 0, null, extraPayment);
     lastCurrentSchedule = currentSchedule;
     currentDiv.innerHTML += scheduleToHtml(currentSchedule);
     renderChart('currentChart', currentSchedule, currentStartDateStr);
@@ -357,7 +361,7 @@ function renderResults(originalCurrentAmount, remainingBalance, currentRate, rem
         canvas.height = 300;
         newDiv.appendChild(canvas);
     }
-    const newSchedule = generateSchedule(newAmount, newRate, newTermMonths, monthsElapsed, newAmount);
+    const newSchedule = generateSchedule(newAmount, newRate, newTermMonths, monthsElapsed, newAmount, extraPayment);
     lastNewSchedule = newSchedule;
     newDiv.innerHTML += scheduleToHtml(newSchedule);
     // new schedule starts at month (monthsElapsed + 1), and we want dates from refinanceDate
@@ -404,6 +408,7 @@ window.addEventListener('DOMContentLoaded', () => {
         let amountNew = parseFloat(document.getElementById('newAmount').value);
         let rateNew = parseFloat(document.getElementById('newRate').value);
         let termNew = parseInt(document.getElementById('newTerm').value, 10) * 12;
+        let extraPayment = parseFloat(document.getElementById('extraPayment').value);
 
         // fall back to defaults if anything is missing or NaN (do this BEFORE calculations)
         if (isNaN(amountCurrent)) amountCurrent = DEFAULTS.currentAmount;
@@ -411,6 +416,7 @@ window.addEventListener('DOMContentLoaded', () => {
         if (isNaN(rateNew)) rateNew = DEFAULTS.newRate;
         if (isNaN(termCurrent)) termCurrent = DEFAULTS.currentTermYears * 12;
         if (isNaN(termNew)) termNew = DEFAULTS.newTermYears * 12;
+        if (isNaN(extraPayment)) extraPayment = 1000;
 
         const currentStartDate = new Date(currentStartDateStr);
         const refinanceDate = new Date(refinanceDateStr);
@@ -419,13 +425,18 @@ window.addEventListener('DOMContentLoaded', () => {
         const monthsElapsed = Math.floor((refinanceDate - currentStartDate) / (1000 * 60 * 60 * 24 * 30.44));
         const remainingMonthsCurrent = Math.max(0, termCurrent - monthsElapsed);
         
-        // calculate remaining balance on current loan
-        const remainingBalance = calculateRemainingBalance(amountCurrent, rateCurrent, termCurrent, monthsElapsed);
+        // generate current loan schedule with extra payments to get accurate remaining balance
+        const fullTermMonths = remainingMonthsCurrent + monthsElapsed;
+        const tempCurrentSchedule = generateSchedule(amountCurrent, rateCurrent, fullTermMonths, 0, null, extraPayment);
+        
+        // find the balance at the refinance month (monthsElapsed)
+        const refinanceMonthEntry = tempCurrentSchedule.find(entry => entry.month === monthsElapsed);
+        const remainingBalance = refinanceMonthEntry ? parseFloat(refinanceMonthEntry.balance) : 0;
         
         // for new amount, use remaining balance if user didn't enter a value
         if (isNaN(amountNew)) amountNew = remainingBalance;
 
-        renderResults(amountCurrent, remainingBalance, rateCurrent, remainingMonthsCurrent, amountNew, rateNew, termNew, monthsElapsed, currentStartDateStr, refinanceDateStr);
+        renderResults(amountCurrent, remainingBalance, rateCurrent, remainingMonthsCurrent, amountNew, rateNew, termNew, monthsElapsed, currentStartDateStr, refinanceDateStr, extraPayment);
         showTab('comparison');
     });
 });
