@@ -43,6 +43,19 @@
             width: 150px;
             margin-bottom: 5px;
         }
+        .amort-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        .amort-table th, .amort-table td {
+            border: 1px solid #ccc;
+            padding: 4px 6px;
+            text-align: right;
+        }
+        .amort-table th {
+            background-color: #f9f9f9;
+        }
     </style>
 </head>
 <body>
@@ -52,20 +65,20 @@
         <fieldset>
             <legend>Current Loan</legend>
             <label for="currentAmount">Loan amount:</label>
-            <input type="number" id="currentAmount" required step="0.01"><br>
+            <input type="number" id="currentAmount" required step="0.01" value="200000"><br>
             <label for="currentRate">Interest rate (%):</label>
-            <input type="number" id="currentRate" required step="0.01"><br>
+            <input type="number" id="currentRate" required step="0.01" value="4.5"><br>
             <label for="currentTerm">Term (years):</label>
-            <input type="number" id="currentTerm" required><br>
+            <input type="number" id="currentTerm" required value="30"><br>
         </fieldset>
         <fieldset>
             <legend>New Loan</legend>
             <label for="newAmount">Loan amount:</label>
-            <input type="number" id="newAmount" step="0.01"><br>
+            <input type="number" id="newAmount" step="0.01" value="200000"><br>
             <label for="newRate">Interest rate (%):</label>
-            <input type="number" id="newRate" required step="0.01"><br>
+            <input type="number" id="newRate" required step="0.01" value="3.5"><br>
             <label for="newTerm">Term (years):</label>
-            <input type="number" id="newTerm" required><br>
+            <input type="number" id="newTerm" required value="30"><br>
         </fieldset>
         <button type="submit">Calculate</button>
     </form>
