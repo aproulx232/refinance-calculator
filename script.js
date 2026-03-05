@@ -29,12 +29,13 @@ function calculateRefinancing(currentAmount, newAmount, newRate, newTerm, curren
 }
 
 // compute amortization schedule for given loan
-function generateSchedule(amount, annualRate, termMonths, monthOffset = 0) {
+function generateSchedule(amount, annualRate, termMonths, monthOffset = 0, startingBalance = null) {
     const schedule = [];
     const monthlyRate = annualRate / 100 / 12;
     // payment formula
     const payment = (amount * monthlyRate) / (1 - Math.pow(1 + monthlyRate, -termMonths));
-    let balance = amount;
+    // use provided starting balance or the amount
+    let balance = startingBalance !== null ? startingBalance : amount;
     let cumulativePrincipal = 0;
     let cumulativeInterest = 0;
     for (let m = 1; m <= termMonths; m++) {
@@ -267,9 +268,9 @@ function renderChart(canvasId, schedule, startDate, scheduleStartMonth = 1) {
 
 // hook UI and calculation logic
 
-function renderResults(currentAmount, currentRate, currentTermMonths, newAmount, newRate, newTermMonths, monthsElapsed) {
-    // use remaining balance as the new loan amount
-    const results = calculateRefinancing(currentAmount, currentAmount, newRate, newTermMonths, currentRate, currentTermMonths);
+function renderResults(originalCurrentAmount, remainingBalance, currentRate, currentTermMonths, newAmount, newRate, newTermMonths, monthsElapsed) {
+    // use original amount for current loan calc, remaining balance for new loan
+    const results = calculateRefinancing(originalCurrentAmount, remainingBalance, newRate, newTermMonths, currentRate, currentTermMonths);
     const currentDiv = document.getElementById('currentSchedule');
     const newDiv = document.getElementById('newSchedule');
     const comparisonDiv = document.getElementById('comparison');
@@ -287,7 +288,7 @@ function renderResults(currentAmount, currentRate, currentTermMonths, newAmount,
         canvas.height = 200;
         currentDiv.appendChild(canvas);
     }
-    const currentSchedule = generateSchedule(currentAmount, currentRate, currentTermMonths, 0);
+    const currentSchedule = generateSchedule(originalCurrentAmount, currentRate, currentTermMonths, 0);
     lastCurrentSchedule = currentSchedule;
     currentDiv.innerHTML += scheduleToHtml(currentSchedule);
     renderChart('currentChart', currentSchedule, new Date(document.getElementById('currentStartDate').value));
@@ -302,7 +303,7 @@ function renderResults(currentAmount, currentRate, currentTermMonths, newAmount,
         canvas.height = 200;
         newDiv.appendChild(canvas);
     }
-    const newSchedule = generateSchedule(currentAmount, newRate, newTermMonths, monthsElapsed);
+    const newSchedule = generateSchedule(remainingBalance, newRate, newTermMonths, monthsElapsed, remainingBalance);
     lastNewSchedule = newSchedule;
     newDiv.innerHTML += scheduleToHtml(newSchedule);
     // new schedule starts at month (monthsElapsed + 1), and we want dates from refinanceDate
@@ -361,11 +362,12 @@ window.addEventListener('DOMContentLoaded', () => {
         // fall back to defaults if anything is missing or NaN
         if (isNaN(amountCurrent)) amountCurrent = DEFAULTS.currentAmount;
         if (isNaN(rateCurrent)) rateCurrent = DEFAULTS.currentRate;
-        if (isNaN(amountNew)) amountNew = DEFAULTS.newAmount;
+        // for new amount, use remaining balance if user didn't enter a value
+        if (isNaN(amountNew)) amountNew = remainingBalance;
         if (isNaN(rateNew)) rateNew = DEFAULTS.newRate;
         if (isNaN(termNew)) termNew = DEFAULTS.newTermYears * 12;
 
-        renderResults(remainingBalance, rateCurrent, remainingMonthsCurrent, amountNew, rateNew, termNew, monthsElapsed);
+        renderResults(amountCurrent, remainingBalance, rateCurrent, remainingMonthsCurrent, amountNew, rateNew, termNew, monthsElapsed);
         showTab('comparison');
     });
 });
