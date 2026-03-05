@@ -1,1 +1,99 @@
-<!DOCTYPE html>\n<html lang="en">\n<head>\n    <meta charset="UTF-8">\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <title>Refinance Calculator</title>\n    <style>\n        body {\n            background: linear-gradient(to right, #ffffff, #e6e6e6);\n            font-family: Arial, sans-serif;\n            margin: 0;\n            padding: 20px;\n        }\n        .tabs {\n            display: flex;\n            justify-content: space-around;\n            background-color: #f1f1f1;\n            padding: 10px;\n            border-radius: 5px;\n        }\n        .tab {\n            cursor: pointer;\n            padding: 10px 20px;\n            border: 1px solid #ccc;\n            border-radius: 5px;\n        }\n        .tab:hover {\n            background-color: #ddd;\n        }\n        .chart {\n            margin-top: 20px;\n        }\n    </style>\n</head>\n<body>\n    <h1>Refinance Calculator</h1>\n    <div class="tabs">\n        <div class="tab" onclick="showTab('currentSchedule')">Current Loan Schedule</div>\n        <div class="tab" onclick="showTab('newSchedule')">New Loan Schedule</div>\n        <div class="tab" onclick="showTab('comparison')">Side-by-Side Comparison</div>\n    </div>\n    <div id="currentSchedule" class="chart">\n        <h2>Current Loan Schedule</h2>\n        <!-- Amortization Chart Logic Here -->\n    </div>\n    <div id="newSchedule" class="chart" style="display:none;">\n        <h2>New Loan Schedule</h2>\n        <!-- Amortization Chart Logic Here -->\n    </div>\n    <div id="comparison" class="chart" style="display:none;">\n        <h2>Side-by-Side Comparison</h2>\n        <!-- Comparison Logic Here -->\n    </div>\n    <div>\n        <h3>Additional Principal Payment Input</h3>\n        <label for="additionalPayment">Enter additional payment:</label>\n        <input type="number" id="additionalPayment" name="additionalPayment">\n    </div>\n    <script>\n        function showTab(tabName) {\n            document.getElementById('currentSchedule').style.display = 'none';\n            document.getElementById('newSchedule').style.display = 'none';\n            document.getElementById('comparison').style.display = 'none';\n            document.getElementById(tabName).style.display = 'block';\n        }\n    </script>\n</body>\n</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Refinance Calculator</title>
+    <style>
+        body {
+            background: linear-gradient(to right, #ffffff, #e6e6e6);
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        .tabs {
+            display: flex;
+            justify-content: space-around;
+            background-color: #f1f1f1;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .tab {
+            cursor: pointer;
+            padding: 10px 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .tab:hover {
+            background-color: #ddd;
+        }
+        .chart {
+            margin-top: 20px;
+        }
+        form fieldset {
+            margin-bottom: 15px;
+            padding: 10px;
+            border: 1px solid #ccc;
+        }
+        form label {
+            display: inline-block;
+            width: 150px;
+        }
+        form input {
+            width: 150px;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Refinance Calculator</h1>
+    <!-- calculator input form -->
+    <form id="calculatorForm">
+        <fieldset>
+            <legend>Current Loan</legend>
+            <label for="currentAmount">Loan amount:</label>
+            <input type="number" id="currentAmount" required step="0.01"><br>
+            <label for="currentRate">Interest rate (%):</label>
+            <input type="number" id="currentRate" required step="0.01"><br>
+            <label for="currentTerm">Term (years):</label>
+            <input type="number" id="currentTerm" required><br>
+        </fieldset>
+        <fieldset>
+            <legend>New Loan</legend>
+            <label for="newAmount">Loan amount:</label>
+            <input type="number" id="newAmount" step="0.01"><br>
+            <label for="newRate">Interest rate (%):</label>
+            <input type="number" id="newRate" required step="0.01"><br>
+            <label for="newTerm">Term (years):</label>
+            <input type="number" id="newTerm" required><br>
+        </fieldset>
+        <button type="submit">Calculate</button>
+    </form>
+    <div class="tabs">
+        <div class="tab" onclick="showTab('currentSchedule')">Current Loan Schedule</div>
+        <div class="tab" onclick="showTab('newSchedule')">New Loan Schedule</div>
+        <div class="tab" onclick="showTab('comparison')">Side-by-Side Comparison</div>
+    </div>
+    <div id="currentSchedule" class="chart">
+        <h2>Current Loan Schedule</h2>
+        <!-- Amortization Chart Logic Here -->
+    </div>
+    <div id="newSchedule" class="chart" style="display:none;">
+        <h2>New Loan Schedule</h2>
+        <!-- Amortization Chart Logic Here -->
+    </div>
+    <div id="comparison" class="chart" style="display:none;">
+        <h2>Side-by-Side Comparison</h2>
+        <!-- Comparison Logic Here -->
+    </div>
+    <script>
+        function showTab(tabName) {
+            document.getElementById('currentSchedule').style.display = 'none';
+            document.getElementById('newSchedule').style.display = 'none';
+            document.getElementById('comparison').style.display = 'none';
+            document.getElementById(tabName).style.display = 'block';
+        }
+    </script>
+    <script src="script.js"></script>
+</body>
+</html>
