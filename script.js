@@ -58,6 +58,88 @@ function scheduleToHtml(schedule) {
 // chart instances for reuse
 let currentChartInstance = null;
 let newChartInstance = null;
+let comparisonChartInstance = null;
+
+// store schedules for re-rendering on tab switch
+let lastCurrentSchedule = null;
+let lastNewSchedule = null;
+
+function showTab(tabName) {
+    document.getElementById('currentSchedule').style.display = 'none';
+    document.getElementById('newSchedule').style.display = 'none';
+    document.getElementById('comparison').style.display = 'none';
+    document.getElementById(tabName).style.display = 'block';
+
+    // re-render chart when tab becomes visible
+    if (lastCurrentSchedule && lastNewSchedule) {
+        if (tabName === 'currentSchedule') {
+            renderChart('currentChart', lastCurrentSchedule);
+        } else if (tabName === 'newSchedule') {
+            renderChart('newChart', lastNewSchedule);
+        } else if (tabName === 'comparison') {
+            renderComparisonChart(lastCurrentSchedule, lastNewSchedule);
+        }
+    }
+}
+function renderComparisonChart(currentSchedule, newSchedule) {
+    const ctx = document.getElementById('comparisonChart').getContext('2d');
+    const labels = currentSchedule.map(r => r.month);
+    const currentCumulativePrincipal = currentSchedule.map(r => parseFloat(r.cumulativePrincipal));
+    const newCumulativePrincipal = newSchedule.map(r => parseFloat(r.cumulativePrincipal));
+    const currentBalance = currentSchedule.map(r => parseFloat(r.balance));
+    const newBalance = newSchedule.map(r => parseFloat(r.balance));
+
+    const config = {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [
+                {
+                    label: 'Current: Cumulative Principal',
+                    data: currentCumulativePrincipal,
+                    borderColor: 'blue',
+                    borderWidth: 1.5,
+                    fill: false
+                },
+                {
+                    label: 'New: Cumulative Principal',
+                    data: newCumulativePrincipal,
+                    borderColor: 'cyan',
+                    borderWidth: 1.5,
+                    fill: false
+                },
+                {
+                    label: 'Current: Balance',
+                    data: currentBalance,
+                    borderColor: 'darkblue',
+                    borderWidth: 1.5,
+                    fill: false,
+                    borderDash: [5, 5]
+                },
+                {
+                    label: 'New: Balance',
+                    data: newBalance,
+                    borderColor: 'darkgreen',
+                    borderWidth: 1.5,
+                    fill: false,
+                    borderDash: [5, 5]
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                x: { title: { display: true, text: 'Month' } },
+                y: { title: { display: true, text: 'Amount' } }
+            }
+        }
+    };
+
+    if (comparisonChartInstance) {
+        comparisonChartInstance.destroy();
+    }
+    comparisonChartInstance = new Chart(ctx, config);
+}
 
 function renderChart(canvasId, schedule) {
     const ctx = document.getElementById(canvasId).getContext('2d');
@@ -75,18 +157,21 @@ function renderChart(canvasId, schedule) {
                     label: 'Cumulative Principal',
                     data: cumulativePrincipalData,
                     borderColor: 'blue',
+                    borderWidth: 1.5,
                     fill: false
                 },
                 {
                     label: 'Cumulative Interest',
                     data: cumulativeInterestData,
                     borderColor: 'red',
+                    borderWidth: 1.5,
                     fill: false
                 },
                 {
                     label: 'Remaining Balance',
                     data: balanceData,
                     borderColor: 'green',
+                    borderWidth: 1.5,
                     fill: false
                 }
             ]
@@ -135,6 +220,7 @@ function renderResults(currentAmount, currentRate, currentTermMonths, newAmount,
         currentDiv.appendChild(canvas);
     }
     const currentSchedule = generateSchedule(currentAmount, currentRate, currentTermMonths);
+    lastCurrentSchedule = currentSchedule;
     currentDiv.innerHTML += scheduleToHtml(currentSchedule);
     renderChart('currentChart', currentSchedule);
 
@@ -149,13 +235,23 @@ function renderResults(currentAmount, currentRate, currentTermMonths, newAmount,
         newDiv.appendChild(canvas);
     }
     const newSchedule = generateSchedule(newAmount, newRate, newTermMonths);
+    lastNewSchedule = newSchedule;
     newDiv.innerHTML += scheduleToHtml(newSchedule);
     renderChart('newChart', newSchedule);
 
     comparisonDiv.innerHTML = `<h2>Side-by-Side Comparison</h2>
-        <p>Current payment: $${results.currentPayment}</p>
-        <p>New payment: $${results.newPayment}</p>
-        <p>Total savings: $${results.savings}</p>`;
+        <p>Current monthly payment: $${results.currentPayment}</p>
+        <p>New monthly payment: $${results.newPayment}</p>
+        <p>Monthly savings: $${(parseFloat(results.currentPayment) - parseFloat(results.newPayment)).toFixed(2)}</p>
+        <p>Total savings over loan term: $${results.savings}</p>`;
+    if (!document.getElementById('comparisonChart')) {
+        const canvas = document.createElement('canvas');
+        canvas.id = 'comparisonChart';
+        canvas.width = 400;
+        canvas.height = 200;
+        comparisonDiv.appendChild(canvas);
+    }
+    renderComparisonChart(currentSchedule, newSchedule);
 }
 
 // wire up the form submission
