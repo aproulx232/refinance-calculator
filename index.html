@@ -239,8 +239,10 @@
             <legend>New Loan</legend>
             <label for="refinanceDate">Refinance date:</label>
             <input type="date" id="refinanceDate" value="2024-01-01"><br>
+            <label for="closingCost">Closing costs ($):</label>
+            <input type="number" id="closingCost" step="0.01" value="5000"><br>
             <label for="newAmount">Loan amount:</label>
-            <input type="number" id="newAmount" step="0.01"><br>
+            <input type="number" id="newAmount" step="0.01" placeholder="Calculated from remaining principal"><br>
             <label for="newRate">Interest rate (%):</label>
             <input type="number" id="newRate" required step="0.01" value="3.5"><br>
             <label for="newTerm">Term (years):</label>

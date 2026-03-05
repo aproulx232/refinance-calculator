@@ -189,36 +189,56 @@ function renderComparisonChart(currentSchedule, newSchedule, currentStartDate, r
                 {
                     label: 'Current: Cumulative Principal',
                     data: currentCumulativePrincipal,
-                    borderColor: 'blue',
-                    borderWidth: 0.8,
-                    pointRadius: 2,
-                    fill: false
+                    borderColor: '#0369a1',
+                    backgroundColor: 'rgba(3, 105, 161, 0.1)',
+                    borderWidth: 2.5,
+                    pointRadius: 3,
+                    pointBackgroundColor: '#0369a1',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    fill: true,
+                    tension: 0.4
                 },
                 {
                     label: 'New: Cumulative Principal',
                     data: newCumulativePrincipal,
-                    borderColor: 'cyan',
-                    borderWidth: 0.8,
-                    pointRadius: 2,
-                    fill: false
+                    borderColor: '#06b6d4',
+                    backgroundColor: 'rgba(6, 182, 212, 0.1)',
+                    borderWidth: 2.5,
+                    pointRadius: 3,
+                    pointBackgroundColor: '#06b6d4',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    fill: true,
+                    tension: 0.4
                 },
                 {
                     label: 'Current: Balance',
                     data: currentBalance,
-                    borderColor: 'darkblue',
-                    borderWidth: 0.8,
-                    pointRadius: 2,
-                    fill: false,
-                    borderDash: [5, 5]
+                    borderColor: '#0284c7',
+                    backgroundColor: 'rgba(2, 132, 199, 0.05)',
+                    borderWidth: 2.5,
+                    pointRadius: 3,
+                    pointBackgroundColor: '#0284c7',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    fill: true,
+                    borderDash: [5, 5],
+                    tension: 0.4
                 },
                 {
                     label: 'New: Balance',
                     data: newBalance,
-                    borderColor: 'darkgreen',
-                    borderWidth: 0.8,
-                    pointRadius: 2,
-                    fill: false,
-                    borderDash: [5, 5]
+                    borderColor: '#0891b2',
+                    backgroundColor: 'rgba(8, 145, 178, 0.05)',
+                    borderWidth: 2.5,
+                    pointRadius: 3,
+                    pointBackgroundColor: '#0891b2',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    fill: true,
+                    borderDash: [5, 5],
+                    tension: 0.4
                 }
             ]
         },
@@ -273,26 +293,41 @@ function renderChart(canvasId, schedule, startDate, scheduleStartMonth = 1) {
                 {
                     label: 'Cumulative Principal',
                     data: cumulativePrincipalData,
-                    borderColor: 'blue',
-                    borderWidth: 0.8,
-                    pointRadius: 2,
-                    fill: false
+                    borderColor: '#0369a1',
+                    backgroundColor: 'rgba(3, 105, 161, 0.1)',
+                    borderWidth: 2.5,
+                    pointRadius: 3,
+                    pointBackgroundColor: '#0369a1',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    fill: true,
+                    tension: 0.4
                 },
                 {
                     label: 'Cumulative Interest',
                     data: cumulativeInterestData,
-                    borderColor: 'red',
-                    borderWidth: 0.8,
-                    pointRadius: 2,
-                    fill: false
+                    borderColor: '#06b6d4',
+                    backgroundColor: 'rgba(6, 182, 212, 0.1)',
+                    borderWidth: 2.5,
+                    pointRadius: 3,
+                    pointBackgroundColor: '#06b6d4',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    fill: true,
+                    tension: 0.4
                 },
                 {
                     label: 'Remaining Balance',
                     data: balanceData,
-                    borderColor: 'green',
-                    borderWidth: 0.8,
-                    pointRadius: 2,
-                    fill: false
+                    borderColor: '#0891b2',
+                    backgroundColor: 'rgba(8, 145, 178, 0.1)',
+                    borderWidth: 2.5,
+                    pointRadius: 3,
+                    pointBackgroundColor: '#0891b2',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    fill: true,
+                    tension: 0.4
                 }
             ]
         },
@@ -408,6 +443,7 @@ window.addEventListener('DOMContentLoaded', () => {
         let amountNew = parseFloat(document.getElementById('newAmount').value);
         let rateNew = parseFloat(document.getElementById('newRate').value);
         let termNew = parseInt(document.getElementById('newTerm').value, 10) * 12;
+        let closingCost = parseFloat(document.getElementById('closingCost').value);
         let currentExtraPayment = parseFloat(document.getElementById('currentExtraPayment').value);
         let newExtraPayment = parseFloat(document.getElementById('newExtraPayment').value);
 
@@ -417,6 +453,7 @@ window.addEventListener('DOMContentLoaded', () => {
         if (isNaN(rateNew)) rateNew = DEFAULTS.newRate;
         if (isNaN(termCurrent)) termCurrent = DEFAULTS.currentTermYears * 12;
         if (isNaN(termNew)) termNew = DEFAULTS.newTermYears * 12;
+        if (isNaN(closingCost)) closingCost = 0;
         if (isNaN(currentExtraPayment)) currentExtraPayment = 1000;
         if (isNaN(newExtraPayment)) newExtraPayment = 1000;
 
@@ -435,8 +472,8 @@ window.addEventListener('DOMContentLoaded', () => {
         const refinanceMonthEntry = tempCurrentSchedule.find(entry => entry.month === monthsElapsed);
         const remainingBalance = refinanceMonthEntry ? parseFloat(refinanceMonthEntry.balance) : 0;
         
-        // for new amount, use remaining balance if user didn't enter a value
-        if (isNaN(amountNew)) amountNew = remainingBalance;
+        // for new amount, use remaining balance + closing costs if user didn't enter a value
+        if (isNaN(amountNew)) amountNew = remainingBalance + closingCost;
 
         renderResults(amountCurrent, remainingBalance, rateCurrent, remainingMonthsCurrent, amountNew, rateNew, termNew, monthsElapsed, currentStartDateStr, refinanceDateStr, currentExtraPayment, newExtraPayment);
         showTab('comparison');
