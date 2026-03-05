@@ -38,6 +38,18 @@ function generateSchedule(amount, annualRate, termMonths, monthOffset = 0, start
     let balance = startingBalance !== null ? startingBalance : amount;
     let cumulativePrincipal = 0;
     let cumulativeInterest = 0;
+    
+    // add month 0 to show initial balance
+    schedule.push({
+        month: monthOffset,
+        payment: '0.00',
+        principal: '0.00',
+        interest: '0.00',
+        balance: balance.toFixed(2),
+        cumulativePrincipal: '0.00',
+        cumulativeInterest: '0.00'
+    });
+    
     for (let m = 1; m <= termMonths; m++) {
         const interest = balance * monthlyRate;
         const principal = payment - interest;
@@ -174,21 +186,24 @@ function renderComparisonChart(currentSchedule, newSchedule, currentStartDate, r
                     label: 'Current: Cumulative Principal',
                     data: currentCumulativePrincipal,
                     borderColor: 'blue',
-                    borderWidth: 1.5,
+                    borderWidth: 0.8,
+                    pointRadius: 2,
                     fill: false
                 },
                 {
                     label: 'New: Cumulative Principal',
                     data: newCumulativePrincipal,
                     borderColor: 'cyan',
-                    borderWidth: 1.5,
+                    borderWidth: 0.8,
+                    pointRadius: 2,
                     fill: false
                 },
                 {
                     label: 'Current: Balance',
                     data: currentBalance,
                     borderColor: 'darkblue',
-                    borderWidth: 1.5,
+                    borderWidth: 0.8,
+                    pointRadius: 2,
                     fill: false,
                     borderDash: [5, 5]
                 },
@@ -196,7 +211,8 @@ function renderComparisonChart(currentSchedule, newSchedule, currentStartDate, r
                     label: 'New: Balance',
                     data: newBalance,
                     borderColor: 'darkgreen',
-                    borderWidth: 1.5,
+                    borderWidth: 0.8,
+                    pointRadius: 2,
                     fill: false,
                     borderDash: [5, 5]
                 }
@@ -254,21 +270,24 @@ function renderChart(canvasId, schedule, startDate, scheduleStartMonth = 1) {
                     label: 'Cumulative Principal',
                     data: cumulativePrincipalData,
                     borderColor: 'blue',
-                    borderWidth: 1.5,
+                    borderWidth: 0.8,
+                    pointRadius: 2,
                     fill: false
                 },
                 {
                     label: 'Cumulative Interest',
                     data: cumulativeInterestData,
                     borderColor: 'red',
-                    borderWidth: 1.5,
+                    borderWidth: 0.8,
+                    pointRadius: 2,
                     fill: false
                 },
                 {
                     label: 'Remaining Balance',
                     data: balanceData,
                     borderColor: 'green',
-                    borderWidth: 1.5,
+                    borderWidth: 0.8,
+                    pointRadius: 2,
                     fill: false
                 }
             ]
@@ -318,8 +337,8 @@ function renderResults(originalCurrentAmount, remainingBalance, currentRate, rem
     if (!document.getElementById('currentChart')) {
         const canvas = document.createElement('canvas');
         canvas.id = 'currentChart';
-        canvas.width = 400;
-        canvas.height = 200;
+        canvas.width = 600;
+        canvas.height = 300;
         currentDiv.appendChild(canvas);
     }
     const currentSchedule = generateSchedule(originalCurrentAmount, currentRate, fullTermMonths, 0);
@@ -328,17 +347,17 @@ function renderResults(originalCurrentAmount, remainingBalance, currentRate, rem
     renderChart('currentChart', currentSchedule, currentStartDateStr);
 
     newDiv.innerHTML = `<h2>New Loan Schedule</h2>
-        <p>Refinance amount: $${remainingBalance.toFixed(2)}</p>
+        <p>Refinance amount: $${newAmount.toFixed(2)}</p>
         <p>Monthly payment: $${results.newPayment}</p>
         <p>Term: ${(newTermMonths / 12).toFixed(1)} years</p>`;
     if (!document.getElementById('newChart')) {
         const canvas = document.createElement('canvas');
         canvas.id = 'newChart';
-        canvas.width = 400;
-        canvas.height = 200;
+        canvas.width = 600;
+        canvas.height = 300;
         newDiv.appendChild(canvas);
     }
-    const newSchedule = generateSchedule(remainingBalance, newRate, newTermMonths, monthsElapsed, remainingBalance);
+    const newSchedule = generateSchedule(newAmount, newRate, newTermMonths, monthsElapsed, newAmount);
     lastNewSchedule = newSchedule;
     newDiv.innerHTML += scheduleToHtml(newSchedule);
     // new schedule starts at month (monthsElapsed + 1), and we want dates from refinanceDate
@@ -352,8 +371,8 @@ function renderResults(originalCurrentAmount, remainingBalance, currentRate, rem
     if (!document.getElementById('comparisonChart')) {
         const canvas = document.createElement('canvas');
         canvas.id = 'comparisonChart';
-        canvas.width = 400;
-        canvas.height = 200;
+        canvas.width = 600;
+        canvas.height = 300;
         comparisonDiv.appendChild(canvas);
     }
     renderComparisonChart(currentSchedule, newSchedule, currentStartDateStr, refinanceDateStr);

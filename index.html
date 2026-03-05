@@ -67,7 +67,7 @@
         }
         canvas {
             max-width: 100%;
-            height: 400px;
+            height: 600px;
             display: block;
             margin: 10px auto;
         }
@@ -94,7 +94,7 @@
             <label for="refinanceDate">Refinance date:</label>
             <input type="date" id="refinanceDate" value="2024-01-01"><br>
             <label for="newAmount">Loan amount:</label>
-            <input type="number" id="newAmount" step="0.01" value="200000"><br>
+            <input type="number" id="newAmount" step="0.01"><br>
             <label for="newRate">Interest rate (%):</label>
             <input type="number" id="newRate" required step="0.01" value="3.5"><br>
             <label for="newTerm">Term (years):</label>
@@ -110,17 +110,17 @@
     <div id="currentSchedule" class="chart">
         <h2>Current Loan Schedule</h2>
         <!-- Amortization Chart Logic Here -->
-        <canvas id="currentChart" width="400" height="200"></canvas>
+        <canvas id="currentChart" width="600" height="300"></canvas>
     </div>
     <div id="newSchedule" class="chart" style="display:none;">
         <h2>New Loan Schedule</h2>
         <!-- Amortization Chart Logic Here -->
-        <canvas id="newChart" width="400" height="200"></canvas>
+        <canvas id="newChart" width="600" height="300"></canvas>
     </div>
     <div id="comparison" class="chart" style="display:none;">
         <h2>Side-by-Side Comparison</h2>
         <!-- Comparison Logic Here -->
-        <canvas id="comparisonChart" width="400" height="200"></canvas>
+        <canvas id="comparisonChart" width="600" height="300"></canvas>
     </div>
     <script>
         function showTab(tabName) {
